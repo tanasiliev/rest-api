@@ -1,6 +1,25 @@
 {
   "name": "node-rest-api",
+  "version": "0.0.1",
+  "description": "REST api with express and mongodb",
   "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tanasiliev/rest-api.git"
+  },
+   "engines": {
+    "node": "0.10.x",
+    "npm": "1.4.x"
+   },
+  "author": "Atanas Iliev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tanasiliev/rest-api/issues"
+  },
+  "homepage": "https://github.com/tanasiliev/rest-api",
   "dependencies": {
     "express": "~4.0.0",
     "body-parser": "~1.0.1",
