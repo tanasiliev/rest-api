@@ -3,9 +3,8 @@ var MongoClient = require('mongodb').MongoClient,
     ObjectID = require('mongodb').ObjectID;
 
 var db = null;
-var connectionString = 'mongodb://localhost/rest-api';
-connectionString = 'mongodb://admin:min1@ds055980.mongolab.com:55980/rest-api'
-                   
+var connectionString = 'mongodb://admin:min1@ds055980.mongolab.com:55980/rest-api'
+                
 MongoClient.connect(connectionString, function(err, mongodb){
 	if(err) throw err;
 	else db = mongodb;
