@@ -7,7 +7,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 var port = process.env.PORT || 3000; 		
-var router = express.Router(); 			
+var router = express.Router(); 
+	
+// enable cross-origin resource sharing
+app.response.__proto__.allowCrossOrigin = function() {
+     this.set('Access-Control-Allow-Origin', '*');
+} 		
 
 router.route('/api/:collectionName')
       
