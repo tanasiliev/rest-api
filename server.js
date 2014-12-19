@@ -17,6 +17,9 @@ app.response.__proto__.allowCrossOrigin = function() {
 
 var send = function(err, result){
     this.allowCrossOrigin();
+	if (err) {
+	   return this.json({err: err}); 
+	}
     this.json(result); 
 } 		
 
