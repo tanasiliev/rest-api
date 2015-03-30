@@ -90,7 +90,7 @@ Collection.prototype = {
 };
 
 // do small performance if we already have the colection 
-// just return the inctance instead of creating the same new one
+// just return the inctance instead of creating the same again
 var collections = (function(){
 	var collections = {};
 	var get = function(name){
