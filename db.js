@@ -1,115 +1,119 @@
-var MongoClient = require('mongodb').MongoClient,
-Server = require('mongodb').Server;
-ObjectID = require('mongodb').ObjectID;
+const mongodb = require('mongodb')
+const MongoClient = mongodb.MongoClient;
+const ObjectID = mongodb.ObjectID;
+require('./promise-finally')
 
-var db = null;
-var connectionString = 'mongodb://admin:min1@ds055980.mongolab.com:55980/rest-api'
+const dbTable = 'rest-api';
+const uri = `mongodb+srv://key:pGQKMW2rXyCiIpms@cluster0-bdoms.mongodb.net/${dbTable}`;
 
-MongoClient.connect(connectionString, function(err, mongodb){
-	if(err) throw err;
-	else db = mongodb;
-});
-
-var validateId = function(id){
+function validateId (id){
 	var regex = /^[0-9a-fA-F]{24}$/;
 	return regex.test(id); 
-}
+};
 
-var Collection = function(name){
-	this._collection = db.collection(name);
-}
+function connect() {
+	return new Promise((resolve, reject) => {
+		MongoClient.connect(uri, { useNewUrlParser: true }, function(error, client) {
+			if(error) {
+				reject(error);
+			}
+			resolve({ db: client.db(dbTable), onComplete: ()=> client.close() });
+		});
+	});
+};
+
+function getCollection(name){
+	return connect()
+	.then(({ db, onComplete }) => {
+		const collection = new Collection(name, db, onComplete);
+		return collection;
+	});
+};
+
+function Collection(name, db, onComplete){
+	this.collection = db.collection(name);
+	this.onComplete = onComplete;
+};
 
 Collection.prototype = {
-	
-	create : function(obj, callback){
-		obj.create_dt = new Date().toUTCString();
-		this._collection.insert(obj, function (err, data) {
-			if (err) callback(err);
-			else callback(null, data);
-		});
+	create: function(obj){
+		return new Promise((resolve, reject) => {
+			obj.created_at = new Date().toUTCString();
+			this.collection.insertOne(obj, (error, data) => {
+				error ? resolve(error) : resolve(data);
+			});
+		})
+		.finally(this.onComplete);
 	},
-	select : function(callback){
-		this._collection.find().toArray(function (err, data) {
-			if (err) callback(err);
-			else callback(null, data);
-		});
+	select: function(){
+		return new Promise((resolve, reject) => {
+			this.collection.find().toArray((error, data) => {
+				error ? resolve(error) : resolve(data);
+			});
+		})
+		.finally(this.onComplete);
 	},
-	update : function(id, obj, callback){
-		var self = this;
-		if(!validateId(id)) {
-			return callback(null, {error: "invalid id"});
-		}	
-		self._collection.findOne({'_id': ObjectID(id)},function (err, record) {
-			if (err) callback(err);
-			else {
-				if (record){
-					// modify the record
-					for (var prop in obj) {
-						record[prop] = obj[prop];
-					}
-					record.updated_dt = new Date().toUTCString(); 
-					self._collection.save(record, function(err, result) { 
-						if (err) callback(err)
-							else {
-								var returnObj = {};
-								returnObj[id] = 'updated';
-								callback(null, returnObj);
-							}	
-						});
-				}
-				else {
-					callback(null, {});
-				} 
+	update: function(id, obj){
+		return new Promise((resolve, reject) => {
+			if(!validateId(id)) {
+				reject({error: "invalid id"});
 			}
-		});
-	},
-	remove : function(id, callback){
-		if(!validateId(id)) {
-			return callback(null, {error: "invalid id"});
-		}
-		this._collection.remove({'_id':ObjectID(id)}, function(err,record) { 
-			if (err) callback(err)
+			this.collection.findOne({'_id': ObjectID(id)}, (error, record)=> {
+				if (error) reject(error);
 				else {
-					var returnObj = {};
-					(record == 0) || (returnObj[id] = 'deleted');
-					callback(null, returnObj);
-				}
-			}); 
-	},
-	selectById : function(id, callback){
-		if(!validateId(id)) {
-			return callback(null, {error: "invalid id"});
-		}
-		this._collection.findOne({'_id': ObjectID(id)},function (err, record) {
-			if (err) callback(err)
-				else {
-					callback(null, record || {});
+					if (record){
+						// modify the record
+						for (var prop in obj) {
+							record[prop] = obj[prop];
+						}
+						record.updated_at = new Date().toUTCString(); 
+						this.collection.updateOne(record, function(err, result) { 
+							if (error) reject(error);
+								else {
+									var returnObj = {};
+									returnObj[id] = 'updated';
+									resolve(returnObj);
+								}	
+							});
+					}
+					else {
+						resolve({});
+					} 
 				}
 			});
+		})
+		.finally(this.onComplete);
+	},
+	remove: function(id){
+		return new Promise((resolve, reject) => {
+			if(!validateId(id)) {
+				reject({error: "invalid id"});
+			}
+			this.collection.deleteOne({'_id':ObjectID(id)}, (error, record) => { 
+				if (error) {
+					reject(err)
+				} else {
+					const returnObj = {};
+					(record == 0) || (returnObj[id] = 'deleted');
+					resolve(returnObj);
+				}
+			});
+		})
+		.finally(this.onComplete);	 
+	},
+	find: function(id) {
+		return new Promise((resolve, reject) => {
+			if(!validateId(id)) {
+				reject({error: "invalid id"});
+			}
+			this.collection.findOne({'_id': ObjectID(id)}, (error, data) => {
+				error ? reject(error) : resolve(data || {});
+			});
+		})
+		.finally(this.onComplete);	 	
 	}
 };
 
-// do small performance if we already have the colection 
-// just return the inctance instead of creating the same again
-var collections = (function(){
-	var collections = {};
-	var get = function(name){
-		if(!name){ 
-			throw 'Name of the Collection is required!';
-		}
-		if(!collections[name]){
-			collections[name] = new Collection(name);
-		}
-		return collections[name]; 
-	};
-
-	return {
-		get: get
-	}
-})();
-
 module.exports = {
-	getCollection: function(name){
-		return collections.get(name);;
-	}
+	getCollection
 };

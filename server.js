@@ -1,13 +1,14 @@
-var express    = require('express'); 		
-var app        = express(); 				
-var bodyParser = require('body-parser');
-var db = require('./db');
+const express = require('express'); 		
+const app = express(); 				
+const wrap = require('co-express');
+const bodyParser = require('body-parser');
+const db = require('./db');
 
-var port = process.env.PORT || 3000; 		
-var router = express.Router(); 	
+const port = process.env.PORT || 3034; 		
+const router = express.Router(); 	
 
 // enable cross-origin resource sharing
-var enableCORS = function(req, res, next) {
+const cors = function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     next();
@@ -15,48 +16,69 @@ var enableCORS = function(req, res, next) {
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(enableCORS);
+app.use(cors);
 
-var send = function(err, result){
-    if (err) {
-        return this.json({err: err}); 
-    }
-    this.json(result); 
-} 		
 
-router.route('/api/:collectionName')
+router
+    .route('/api/:collectionName')
+    .get(wrap(function* (req, res) {
+        const { collectionName } =req.params;
+        try {
+            const collection = yield db.getCollection(collectionName)
+            const result = yield collection.select();
+            res.json(result); 
+        } catch (error) {
+            res.json(error);
+        }
+    }))
+    .post(wrap(function* (req, res) {
+        const { collectionName } = req.params;
+        const data = req.body;
+        try {
+            const collection = yield db.getCollection(collectionName)
+            const result = yield collection.create(data);
+            res.json(result); 
+        } catch (error) {
+            res.json(error);
+        }
+    }))
 
-.get(function(req, res) {
-    var params = req.params;   
-    var collection = db.getCollection(params.collectionName);
-    collection.select(send.bind(res));
-})  
-.post(function(req, res) {
-    var params = req.params;   
-    var data = req.body;
-    var collection = db.getCollection(params.collectionName);
-    collection.create( data, send.bind(res));
-});
-
-router.route('/api/:collectionName/:id') 
-
-.get(function(req, res) {
-    var params = req.params;   
-    var collection = db.getCollection(params.collectionName);
-    collection.selectById(params.id, send.bind(res));
-})
-.put(function(req, res) {
-    var params = req.params;   
-    var data = req.body;
-    var collection = db.getCollection(params.collectionName);
-    collection.update(params.id, data, send.bind(res));
-})
-.delete(function(req, res) {
-    var params = req.params;   
-    var collection = db.getCollection(params.collectionName);
-    collection.remove(params.id, send.bind(res));
-});
+router
+    .route('/api/:collectionName/:id') 
+    .get(wrap(function* (req, res) {
+        const { id, collectionName } = req.params;
+        try {
+            const collection = yield db.getCollection(collectionName)
+            const result = yield collection.find(id);
+            res.json(result); 
+        } catch (error) {
+            res.json(error);       
+        }
+    }))
+    .put(wrap(function* (req, res) {
+        const { id, collectionName } = req.params;
+        const data = req.body;
+        try {
+            const collection = yield db.getCollection(collectionName)
+            const result = yield collection.update(id, data);
+            res.json(result); 
+        } catch (error) {
+            res.json(error);
+        }
+    }))
+    .delete(wrap(function* (req, res) {
+        const { id, collectionName } = req.params;
+        try {
+            const collection = yield db.getCollection(collectionName)
+            const result = yield collection.remove(id);
+            res.json(result); 
+        } catch (error) {
+            res.json(error);   
+        }
+    }))
+ 
 
 app.use('/', router);
-app.listen(port);
-//console.log('Server running on port ' + port);
+app.listen(port, function () {
+    console.log('Server running on port ' + port);
+})
