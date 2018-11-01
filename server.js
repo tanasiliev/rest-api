@@ -3,21 +3,17 @@ const app = express();
 const wrap = require('co-express');
 const bodyParser = require('body-parser');
 const db = require('./db');
+const middlewares = require('./middlewares');
+const auth = middlewares.auth;
+const cors = middlewares.cors;
 
 const port = process.env.PORT || 3034; 		
 const router = express.Router(); 	
 
-// enable cross-origin resource sharing
-const cors = function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-    next();
-};
-
+app.use(auth);
+app.use(cors);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(cors);
-
 
 router
     .route('/api/:collectionName')
