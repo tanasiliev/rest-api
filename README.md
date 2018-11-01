@@ -5,9 +5,9 @@
 Fast, unopinionated, minimalist web framework for Node.js
 - middlewares:
   - **[body-parser](https://github.com/expressjs/body-parser)**: Node.js body parsing middleware.
-  - **(co-express)(https://github.com/mciparelli/co-express)**: An express wrapper that enables generators to be used as middlewares.
+  - **[co-express](https://github.com/mciparelli/co-express)**: An express wrapper that enables generators to be used as middlewares.
   - **cors**:  enable Cross-origin resource sharing (CORS)
-   - **auth**:  Basic access authentication
+   - **auth**:  Basic authentication
 - [co](https://github.com/tj/co): The ultimate generator based flow-control goodness for nodejs (supports thunks, promises, etc)
 
 ### [MongoDB](https://www.mongodb.com/):
